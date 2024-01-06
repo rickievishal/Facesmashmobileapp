@@ -21,10 +21,19 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.picklevishal.Facesmash"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "f33053fb-78d3-4e95-a3a2-7c6785f2c250"
+      }
+    },
+    "plugins": [
+      "expo-router"
+    ]
   }
 }

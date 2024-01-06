@@ -1,7 +1,8 @@
 // import { useNavigation } from "expo-router";
-import { Button, Image, Text, TouchableOpacity, View } from "react-native";
+import { Button, Image, Linking, Text, TouchableOpacity, View } from "react-native";
 import { storage } from "../../firebase";
-
+import {launchCamera,launchImageLibrary} from "react-native-image-picker"
+import * as ImagePicker from 'react-native-image-picker';
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 import {
@@ -16,10 +17,27 @@ import {
 } from "firebase/firestore";
 
 import { useEffect, useState } from "react";
+import { Link } from "@react-navigation/native";
+import { SafeAreaView } from "react-native-safe-area-context";
 export default function RatingPage({ navigation }) {
   const [datajson, setDatajson] = useState([]);
 
   const [selectedImage, setSelectedImage] = useState(null);
+
+  const selectimage =  () => {
+    ImagePicker.launchImageLibrary({
+      mediaType: 'photo',
+      includeBase64: false,
+      maxHeight: 200,
+      maxWidth: 200,
+    },
+    (response) => {
+      console.log(response);
+      setSelectedImage(response)
+    },
+  ).then(console.log(selectedImage))
+  .catch((err)=>{console.log(err)})
+  }
 
   //this function returns the new rating of the player
   function calculateEloRating(playerRating, opponentRating, outcome) {
@@ -99,6 +117,8 @@ export default function RatingPage({ navigation }) {
       console.error("Error fetching data:", error);
     }
   };
+
+
   useEffect(() => {
     fetchDoc();
   }, []);
@@ -107,141 +127,156 @@ export default function RatingPage({ navigation }) {
   };
   console.log(datajson)
   return (
-    <View
-      className="h-full w-full "
-      style={{
-        flex: 1,
-        position: "relative",
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "white",
+   <SafeAreaView style={{flex:1}}>
+     <View
+
+style={{
+  flex: 1,
+  position: "relative",
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: "white",
+}}
+>
+<View
+
+  style={{
+    position: "absolute",
+    top: 0,
+    height: 80,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "red",
+
+  }}
+>
+  <Text
+    className="text-white text-[30px]"
+    style={{ color: "white", fontSize: 30 }}
+  >
+    Facesmash
+  </Text>
+</View>
+<View
+  className="w-full h-full flex flex-col justify-center items-center "
+  style={{
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 4,
+  }}
+>
+  <Text className="text-[20px] mb-2" style={{ fontSize: 20 }}>
+    Who is pretty?
+  </Text>
+  <Text>click to choose</Text>
+  <View style={{ width: "100%", flexDirection: "row", gap: 2 }}>
+  
+    {datajson.map((data)=>(
+      <TouchableOpacity key={data.id}
+      style={{ height: "auto", width: "auto" }}
+      onPress={() => {
+        // console.log("hello");
+        // Navigation.navigate("learderboard")
+        // navigation.navigate("leaderboard");
+        let clickedimagerating;
+        clickedimagerating = data.rating;
+        console.log(clickedimagerating);
+        const imagelostdata = datajson.filter(
+          (doc) => doc.id !== data.id
+        );
+        let lostimagerating = imagelostdata[0].rating;
+
+        console.log(
+          "initial clicked image ration:",
+          clickedimagerating
+        );
+        console.log("Initial lost image rating:", lostimagerating);
+        clickedimagerating = calculateEloRating(
+          clickedimagerating,
+          lostimagerating,
+          1
+        );
+        lostimagerating = calculateEloRating(
+          lostimagerating,
+          clickedimagerating,
+          0
+        );
+        console.log(
+          "updated clicked image ration:",
+          clickedimagerating
+        );
+        console.log("updated lost image rating:", lostimagerating);
+        const db = getFirestore();
+        console.log(imagelostdata);
+        const imagewon = doc(db, "images", data.id);
+        const imagelost = doc(db, "images", imagelostdata[0].id);
+
+        updateDoc(imagewon, {
+          rating: clickedimagerating,
+        }).then(() => {
+          console.log("updated the value", clickedimagerating);
+        });
+        updateDoc(imagelost, {
+          rating: lostimagerating,
+        }).then(() => {
+          fetchDoc();
+        });
       }}
     >
       <View
-        className="w-full  bg-red-600 h-[100px] flex justify-center items-center pt-[30px] shadow-xl"
-        style={{
-          position: "absolute",
-          top: 0,
-          height: 100,
-          width: "100%",
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "red",
-          paddingTop: 30,
-        }}
+        className="w-[150px] h-[250px]"
+        style={{ width: 150, height: 250 }}
       >
-        <Text
-          className="text-white text-[30px]"
-          style={{ color: "white", fontSize: 30 }}
-        >
-          Facesmash
-        </Text>
-      </View>
-      <View
-        className="w-full h-full flex flex-col justify-center items-center "
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          gap: 4,
+        <Image
+        className="w-full h-full"
+        style={{ width: "100%", height: "100%" }}
+        source={{
+          uri: data.imgurl,
         }}
-      >
-        <Text className="text-[20px] mb-2" style={{ fontSize: 20 }}>
-          Who is pretty?
-        </Text>
-        <Text>click to choose</Text>
-        <View style={{ width: "100%", flexDirection: "row", gap: 2 }}>
-        
-          {datajson.map((data)=>(
-            <TouchableOpacity
-            style={{ height: "auto", width: "auto" }}
-            onPress={() => {
-              // console.log("hello");
-              // Navigation.navigate("learderboard")
-              // navigation.navigate("leaderboard");
-              let clickedimagerating;
-              clickedimagerating = data.rating;
-              console.log(clickedimagerating);
-              const imagelostdata = datajson.filter(
-                (doc) => doc.id !== data.id
-              );
-              let lostimagerating = imagelostdata[0].rating;
-
-              console.log(
-                "initial clicked image ration:",
-                clickedimagerating
-              );
-              console.log("Initial lost image rating:", lostimagerating);
-              clickedimagerating = calculateEloRating(
-                clickedimagerating,
-                lostimagerating,
-                1
-              );
-              lostimagerating = calculateEloRating(
-                lostimagerating,
-                clickedimagerating,
-                0
-              );
-              console.log(
-                "updated clicked image ration:",
-                clickedimagerating
-              );
-              console.log("updated lost image rating:", lostimagerating);
-              const db = getFirestore();
-              console.log(imagelostdata);
-              const imagewon = doc(db, "images", data.id);
-              const imagelost = doc(db, "images", imagelostdata[0].id);
-
-              updateDoc(imagewon, {
-                rating: clickedimagerating,
-              }).then(() => {
-                console.log("updated the value", clickedimagerating);
-              });
-              updateDoc(imagelost, {
-                rating: lostimagerating,
-              }).then(() => {
-                fetchDoc();
-              });
-            }}
-          >
-            <View
-              className="w-[150px] h-[250px]"
-              style={{ width: 150, height: 250 }}
-            >
-              <Image
-              className="w-full h-full"
-              style={{ width: "100%", height: "100%" }}
-              source={{
-                uri: data.imgurl,
-              }}
-            />
-            </View>
-          </TouchableOpacity>
-          ))}
-        </View>
-        <View
-          style={{
-            width: "100%",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ fontSize: 13 }}>Try uploading your image</Text>
-          <Text style={{ fontSize: 13 }}>by clicking the button below</Text>
-          <TouchableOpacity
-            style={{
-              padding: 5,
-              paddingHorizontal: 3,
-              backgroundColor: "#009dff",
-              marginTop: 8,
-              borderRadius: 5,
-            }}
-          >
-            <Text style={{ marginHorizontal: 5, color: "white" }}>upload</Text>
-          </TouchableOpacity>
-        </View>
+      />
       </View>
-    </View>
+    </TouchableOpacity>
+    ))}
+  </View>
+  <View
+    style={{
+      width: "100%",
+      flexDirection: "column",
+      justifyContent: "center",
+      alignItems: "center",
+      marginTop:20
+    }}
+  >
+     <Text style={{ fontSize: 13 }}>*note*</Text>
+    <Text style={{ fontSize: 13 }}>due to the laziness of the creator</Text>
+    <Text style={{ fontSize: 13 }}>uploading is limited to webapp</Text>
+    {/* <TouchableOpacity style={{backgroundColor:"#dbdbdb",borderRadius:6,borderWidth:1,marginTop:3}} onPress={selectimage}>
+      <Text style={{color:"black",paddingHorizontal:15,paddingVertical:3}}>
+        select
+      </Text>
+    </TouchableOpacity> */}
+    {/* <TouchableOpacity
+      style={{
+        padding: 5,
+        paddingHorizontal: 3,
+        backgroundColor: "#009dff",
+        marginTop: 8,
+        borderRadius: 5,
+      }}
+      onPress={uploadimage}
+    >
+      <Text style={{ marginHorizontal: 5, color: "white" }} >upload</Text>
+    </TouchableOpacity> */}
+      <TouchableOpacity style={{backgroundColor:"#00b3ff",paddingHorizontal:10,paddingVertical:3 ,borderRadius:7,marginTop:10}} onPress={()=>{
+        Linking.openURL("https://facesmash-by-vishal.netlify.app/")
+      }}>
+        <Text style={{color:"white" ,fontSize:15}}>open on web</Text>
+      </TouchableOpacity>
+  </View>
+</View>
+</View>
+   </SafeAreaView>
   );
 }
